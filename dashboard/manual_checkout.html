@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Complete a real Razorpay test-mode payment</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 560px; margin: 60px auto; padding: 0 20px; }
+  h1 { font-size: 18px; }
+  label { display: block; margin: 16px 0 6px; font-size: 13px; color: #555; }
+  input { width: 100%; padding: 10px; font-size: 14px; box-sizing: border-box; }
+  button { margin-top: 20px; padding: 12px 20px; font-size: 15px; background: #3395FF; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  #status { margin-top: 16px; font-size: 13px; white-space: pre-wrap; }
+  .note { background: #fff8e1; border: 1px solid #ffe082; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h1>Complete a real Razorpay test-mode payment</h1>
+<p style="font-size:13px;color:#555">
+  Use this to genuinely complete payment against ONE of your already-created
+  test orders (from <code>seed_razorpay_testmode.py</code>). This opens
+  Razorpay's real hosted Checkout widget in test mode - nothing here is
+  simulated locally, it's the real widget talking to the real API.
+</p>
+
+<label for="key">Your test Key ID (rzp_test_...)</label>
+<input id="key" placeholder="rzp_test_xxxxxxxxxxxx">
+
+<label for="order">Order ID (from your seeding script output, e.g. order_TSsd6KeBudfC00)</label>
+<input id="order" placeholder="order_xxxxxxxxxxxx">
+
+<label for="amount">Amount in paise (must match the order's amount exactly - check your seeding script's console output for this order)</label>
+<input id="amount" placeholder="e.g. 1800000 for the ₹18000.00 order">
+
+<button onclick="pay()">Open Checkout &amp; complete payment</button>
+<div id="status"></div>
+
+<div class="note">
+  On the Checkout screen: choose <b>Netbanking</b>, pick any bank, then click
+  <b>Success</b> on the mock bank page that appears. This is Razorpay's own
+  test simulation - no real bank is contacted, no real money moves.
+</div>
+
+<script>
+function pay() {
+  const key = document.getElementById('key').value.trim();
+  const order_id = document.getElementById('order').value.trim();
+  const amount = document.getElementById('amount').value.trim();
+  const status = document.getElementById('status');
+
+  if (!key || !order_id || !amount) {
+    status.textContent = 'Fill in all three fields first.';
+    return;
+  }
+  if (!key.startsWith('rzp_test_')) {
+    status.textContent = 'That does not look like a test-mode key (should start with rzp_test_). Refusing to proceed.';
+    return;
+  }
+
+  const options = {
+    key: key,
+    amount: amount,
+    currency: 'INR',
+    order_id: order_id,
+    name: 'Fraud-Spike Sentinel (buildathon test)',
+    description: 'Seeding real test-mode payment for evaluation',
+    handler: function (response) {
+      status.textContent =
+        'SUCCESS\n' +
+        'payment id: ' + response.razorpay_payment_id + '\n' +
+        'order id: ' + response.razorpay_order_id + '\n' +
+        'This payment now exists in your test account and is fetchable via the API.';
+    },
+    modal: {
+      ondismiss: function () {
+        status.textContent = 'Checkout closed without completing payment.';
+      }
+    },
+    theme: { color: '#3395FF' }
+  };
+
+  const rzp = new Razorpay(options);
+  rzp.on('payment.failed', function (response) {
+    status.textContent = 'Payment failed (this is fine, it is still a real record): ' + response.error.description;
+  });
+  rzp.open();
+}
+</script>
+
+</body>
+</html>

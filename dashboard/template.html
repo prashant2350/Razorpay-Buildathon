@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fraud-Spike Sentinel — Risk Ops Console</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#0A0D12; --panel:#11151C; --panel-2:#161C25; --line:#232A36;
+    --text:#E7EBF2; --muted:#8B96A8; --dim:#5B6576;
+    --amber:#F2B807; --red:#E5484D; --green:#33D6A0; --blue:#5AA9FF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',sans-serif; padding:32px 40px 80px;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  header{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px; border-bottom:1px solid var(--line); padding-bottom:20px;}
+  h1{font-size:22px; margin:0; letter-spacing:.2px;}
+  h1 .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green); margin-right:10px; box-shadow:0 0 8px var(--green);}
+  .subtitle{color:var(--muted); font-size:13px; margin-top:6px;}
+  .badge{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--dim); border:1px solid var(--line); padding:5px 10px; border-radius:4px;}
+
+  .grid{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:24px;}
+  .stat{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px 18px;}
+  .stat .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px;}
+  .stat .value{font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600;}
+  .stat .value.amber{color:var(--amber)} .stat .value.green{color:var(--green)} .stat .value.red{color:var(--red)} .stat .value.blue{color:var(--blue)}
+
+  .row{display:grid; grid-template-columns:1.1fr 1fr; gap:16px; margin-bottom:20px;}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px;}
+  .panel h2{font-size:13px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:0 0 14px;}
+  .cost-line{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+  .cost-line:last-child{border-bottom:none; padding-top:12px; font-weight:600; color:var(--amber);}
+  .cost-line span:first-child{color:var(--muted)}
+  .cost-line span:last-child{font-family:'IBM Plex Mono',monospace;}
+
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  th{text-align:left; color:var(--dim); font-weight:500; text-transform:uppercase; font-size:10.5px; letter-spacing:.5px; padding:8px 10px; border-bottom:1px solid var(--line);}
+  td{padding:10px; border-bottom:1px solid #1a2028; vertical-align:top;}
+  tr:hover td{background:#141a23;}
+  .pill{font-family:'IBM Plex Mono',monospace; font-size:10.5px; padding:3px 8px; border-radius:20px; display:inline-block; white-space:nowrap;}
+  .pill.MONITOR{background:#1c2733; color:var(--blue);}
+  .pill.STEP_UP_AUTH{background:#2a250f; color:var(--amber);}
+  .pill.SOFT_HOLD{background:#2e1a12; color:#FF8A4C;}
+  .pill.ESCALATE_HUMAN{background:#2e1418; color:var(--red);}
+  .reasons{color:var(--muted); font-size:11.5px; line-height:1.5;}
+  .impact-caveat{color:var(--dim); font-size:11px; margin-bottom:16px;}
+  .impact-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .impact-card{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:16px;}
+  .impact-card .period{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;}
+  .impact-card .net{font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:700; color:var(--green); margin-bottom:10px;}
+  .impact-card .line{display:flex; justify-content:space-between; font-size:11.5px; padding:4px 0; color:var(--muted);}
+  .impact-card .line span:last-child{font-family:'IBM Plex Mono',monospace; color:var(--text);}
+  .explain{color:var(--text); font-size:12px; line-height:1.5;}
+  .score{font-family:'IBM Plex Mono',monospace; font-weight:600;}
+  .gt-fraud{color:var(--red); font-weight:600;}
+  .gt-legit{color:var(--green);}
+
+  canvas{max-height:260px;}
+  footer{margin-top:30px; color:var(--dim); font-size:11px; text-align:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1><span class="dot"></span>Fraud-Spike Sentinel</h1>
+    <div class="subtitle mono">Track 02 · AI Risk Manager — held-out test evaluation, 3 merchants, 4 fraud patterns</div>
+  </div>
+  <div class="badge">DEFENSE-ONLY · BOUNDED &amp; GATED · AUDIT-LOGGED</div>
+</header>
+
+<div class="grid" id="stat-grid"></div>
+
+<div class="row">
+  <div class="panel">
+    <h2>Precision / Recall Curve — Held-out Test Split</h2>
+    <canvas id="prChart"></canvas>
+  </div>
+  <div class="panel">
+    <h2>Confusion Matrix &amp; Honest Cost Accounting (₹)</h2>
+    <div id="cost-lines"></div>
+  </div>
+</div>
+
+<div class="panel" id="impact-panel">
+  <h2>Business Impact — Observed vs. Projected (₹)</h2>
+  <div class="impact-caveat mono">Observed = actual held-out test period. Projected = linear extrapolation, assumption stated explicitly, not hidden.</div>
+  <div class="impact-grid" id="impact-grid"></div>
+</div>
+
+<div class="panel">
+  <h2>Audit Trail — Every Flagged Window, Bounded Action, and Explanation</h2>
+  <table>
+    <thead>
+      <tr><th>Window</th><th>Score</th><th>Ground Truth</th><th>Action</th><th>Reasons</th><th>Explanation</th></tr>
+    </thead>
+    <tbody id="audit-body"></tbody>
+  </table>
+</div>
+
+<footer>Synthetic data across 3 merchants with distinct baseline traffic, 15-min windows · Ensemble = rolling z-score (transparent) + Isolation Forest (multivariate) + per-customer repeat-order tracking (refund abuse) · Claude narrates decisions already made by a deterministic rules engine</footer>
+
+<script>
+const DATA = __DATA_JSON__;
+
+function fmt(n, d=2){ return Number(n).toFixed(d); }
+
+const g = document.getElementById('stat-grid');
+const stats = [
+  {label:'Precision', value: fmt(DATA.metrics.precision*100,1)+'%', cls:'green'},
+  {label:'Recall', value: fmt(DATA.metrics.recall*100,1)+'%', cls:'blue'},
+  {label:'F1 Score', value: fmt(DATA.metrics.f1,3), cls:'amber'},
+  {label:'PR-AUC', value: fmt(DATA.metrics.pr_auc,3), cls:'green'},
+  {label:'Test Windows', value: DATA.metrics.n_test_windows, cls:''},
+];
+g.innerHTML = stats.map(s=>`<div class="stat"><div class="label">${s.label}</div><div class="value ${s.cls}">${s.value}</div></div>`).join('');
+
+const c = DATA.cost_summary;
+document.getElementById('cost-lines').innerHTML = `
+  <div class="cost-line"><span>True Positives (fraud caught)</span><span style="color:var(--green)">${c.tp}</span></div>
+  <div class="cost-line"><span>False Positives (legit flagged)</span><span style="color:var(--amber)">${c.fp}</span></div>
+  <div class="cost-line"><span>False Negatives (fraud missed)</span><span style="color:var(--red)">${c.fn}</span></div>
+  <div class="cost-line"><span>True Negatives</span><span>${c.tn}</span></div>
+  <div class="cost-line"><span>False-positive review cost</span><span>₹${c.false_positive_review_cost_inr.toLocaleString('en-IN')}</span></div>
+  <div class="cost-line"><span>False-negative loss cost</span><span>₹${c.false_negative_loss_cost_inr.toLocaleString('en-IN')}</span></div>
+  <div class="cost-line"><span>TOTAL MODEL COST</span><span>₹${c.total_cost_inr.toLocaleString('en-IN')}</span></div>
+`;
+
+if (DATA.business_impact) {
+  const bi = DATA.business_impact;
+  const inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
+  const periods = [
+    { key: 'observed', label: bi.observed.period_label },
+    { key: 'monthly', label: bi.monthly.period_label },
+    { key: 'annual', label: bi.annual.period_label },
+  ];
+  document.getElementById('impact-grid').innerHTML = periods.map(p => {
+    const d = bi[p.key];
+    return `
+      <div class="impact-card">
+        <div class="period">${p.label}</div>
+        <div class="net">${inr(d.net_impact_inr)}</div>
+        <div class="line"><span>Fraud caught</span><span>${d.fraud_caught_count} · ${inr(d.fraud_caught_value_inr)}</span></div>
+        <div class="line"><span>False-positive cost</span><span>-${inr(d.false_positive_cost_inr)}</span></div>
+        <div class="line"><span>Fraud missed cost</span><span>-${inr(d.fraud_missed_cost_inr)}</span></div>
+      </div>
+    `;
+  }).join('');
+}
+
+const ctx = document.getElementById('prChart');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: DATA.pr_curve.recall.map(r=>fmt(r,2)),
+    datasets: [{
+      label: 'Precision',
+      data: DATA.pr_curve.precision,
+      borderColor: '#33D6A0',
+      backgroundColor: 'rgba(51,214,160,0.08)',
+      fill: true, tension: 0.15, pointRadius: 0, borderWidth: 2,
+    }]
+  },
+  options: {
+    scales: {
+      x: { title:{display:true,text:'Recall',color:'#8B96A8'}, ticks:{color:'#5B6576'}, grid:{color:'#1a2028'} },
+      y: { title:{display:true,text:'Precision',color:'#8B96A8'}, min:0, max:1.02, ticks:{color:'#5B6576'}, grid:{color:'#1a2028'} }
+    },
+    plugins: { legend: { display:false } }
+  }
+});
+
+const body = document.getElementById('audit-body');
+body.innerHTML = DATA.flagged_windows.map(w => `
+  <tr>
+    <td class="mono">${w.window_start}<br><span style="color:var(--dim)">${w.txn_count} txns · ₹${fmt(w.total_amount_inr,0)}</span></td>
+    <td class="score">${fmt(w.risk_score,2)}</td>
+    <td class="${w.ground_truth_is_fraud ? 'gt-fraud' : 'gt-legit'} mono">${w.ground_truth_is_fraud ? 'FRAUD' : 'legit'}</td>
+    <td><span class="pill ${w.action}">${w.action.replaceAll('_',' ')}</span></td>
+    <td class="reasons">${w.deterministic_reasons.join('<br>')}</td>
+    <td class="explain">${w.explanation}</td>
+  </tr>
+`).join('');
+</script>
+</body>
+</html>

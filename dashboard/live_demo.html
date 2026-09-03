@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fraud-Spike Sentinel — Live Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+  :root{ --bg:#0A0D12; --panel:#11151C; --line:#232A36; --text:#E7EBF2; --muted:#8B96A8; --dim:#5B6576; --amber:#F2B807; --red:#E5484D; --green:#33D6A0; --blue:#5AA9FF; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;padding:32px 40px 80px}
+  .mono{font-family:'IBM Plex Mono',monospace}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+  .presets{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+  .preset-btn{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:14px 20px;border-radius:8px;cursor:pointer;font-size:13px;text-align:left;transition:border-color .15s}
+  .preset-btn:hover{border-color:var(--amber)}
+  .preset-btn .label{font-weight:600;display:block;margin-bottom:4px}
+  .preset-btn .desc{color:var(--muted);font-size:11.5px}
+  #result{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:24px;min-height:160px}
+  .placeholder{color:var(--dim);font-size:13px}
+  .loading{color:var(--amber);font-size:13px}
+  .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .row:last-child{border-bottom:none}
+  .row span:first-child{color:var(--muted)}
+  .row span:last-child{font-family:'IBM Plex Mono',monospace;font-weight:600}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 10px;border-radius:20px;display:inline-block}
+  .pill.MONITOR{background:#1c2733;color:var(--blue)}
+  .pill.STEP_UP_AUTH{background:#2a250f;color:var(--amber)}
+  .pill.SOFT_HOLD{background:#2e1a12;color:#FF8A4C}
+  .pill.ESCALATE_HUMAN{background:#2e1418;color:var(--red)}
+  .explain{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;line-height:1.6;color:var(--text)}
+  .reasons{color:var(--muted);font-size:12px;margin-top:8px;line-height:1.6}
+  #chat-panel{margin-top:20px;padding-top:20px;border-top:1px solid var(--line);display:none}
+  #chat-panel.active{display:block}
+  #chat-log{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;max-height:280px;overflow-y:auto}
+  .chat-msg{font-size:13px;line-height:1.5;padding:10px 14px;border-radius:8px;max-width:85%}
+  .chat-msg.question{background:#1c2733;color:var(--blue);align-self:flex-end}
+  .chat-msg.answer{background:#161c25;color:var(--text);align-self:flex-start;border:1px solid var(--line)}
+  .chat-input-row{display:flex;gap:8px}
+  #chat-input{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;font-family:'Inter',sans-serif}
+  #chat-input:focus{outline:none;border-color:var(--amber)}
+  #chat-send{background:var(--amber);color:#1a1200;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+  #chat-send:disabled{opacity:0.5;cursor:not-allowed}
+  .chat-hint{color:var(--dim);font-size:11px;margin-bottom:10px}
+  .chat-error{color:var(--red);font-size:12px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<h1>Fraud-Spike Sentinel — live demo</h1>
+<div class="sub mono">Click a scenario below. This fires a real transaction window through the trained detector, the bounded rules engine, and Claude's narration — live.</div>
+
+<div class="presets" id="presets"></div>
+<div id="result"><span class="placeholder">Click a scenario above to see a live decision.</span></div>
+
+<div id="chat-panel">
+  <div class="chat-hint mono">Ask a follow-up question about this flagged window — answered from its aggregated stats only, nothing invented.</div>
+  <div id="chat-log"></div>
+  <div class="chat-input-row">
+    <input type="text" id="chat-input" placeholder="e.g. Why was this escalated instead of held?" onkeydown="if(event.key==='Enter') sendChat()">
+    <button id="chat-send" onclick="sendChat()">Ask</button>
+  </div>
+  <div id="chat-error" class="chat-error"></div>
+</div>
+
+<script>
+const PRESETS = [
+  { label: "Normal traffic", desc: "Typical 15-min window", payload: {
+      txn_count: 12, total_amount: 7800, avg_amount: 650, std_amount: 180,
+      distinct_bins: 6, distinct_countries: 1, fail_rate: 0.05 } },
+  { label: "Card-testing burst", desc: "25 tiny txns, many cards, high fails", payload: {
+      txn_count: 25, total_amount: 380, avg_amount: 15, std_amount: 8,
+      distinct_bins: 13, distinct_countries: 3, fail_rate: 0.75 } },
+  { label: "High-value takeover", desc: "Sudden large ticket size", payload: {
+      txn_count: 6, total_amount: 108000, avg_amount: 18000, std_amount: 4200,
+      distinct_bins: 3, distinct_countries: 3, fail_rate: 0.0 } },
+  { label: "Geo-velocity spike", desc: "Same card, many countries fast", payload: {
+      txn_count: 8, total_amount: 17600, avg_amount: 2200, std_amount: 500,
+      distinct_bins: 1, distinct_countries: 5, fail_rate: 0.0 } },
+  { label: "Refund abuse ring", desc: "Same customer, 3rd high-value order in 30 days", payload: {
+      txn_count: 1, total_amount: 9200, avg_amount: 9200, std_amount: 0,
+      distinct_bins: 1, distinct_countries: 1, fail_rate: 0.0, repeat_email_count: 3 } },
+];
+
+let currentWindowId = null;
+
+const presetsEl = document.getElementById('presets');
+PRESETS.forEach(p => {
+  const btn = document.createElement('button');
+  btn.className = 'preset-btn';
+  btn.innerHTML = `<span class="label">${p.label}</span><span class="desc">${p.desc}</span>`;
+  btn.onclick = () => fire(p.payload);
+  presetsEl.appendChild(btn);
+});
+
+async function fire(payload) {
+  const result = document.getElementById('result');
+  const chatPanel = document.getElementById('chat-panel');
+  chatPanel.classList.remove('active');
+  document.getElementById('chat-log').innerHTML = '';
+  document.getElementById('chat-error').textContent = '';
+  result.innerHTML = '<span class="loading">Scoring transaction window...</span>';
+  try {
+    const res = await fetch('/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.error) {
+      result.innerHTML = `<span class="loading">${data.error}</span>`;
+      return;
+    }
+    currentWindowId = data.window_id;
+    result.innerHTML = `
+      <div class="row"><span>Risk score</span><span>${data.risk_score.toFixed(3)}</span></div>
+      <div class="row"><span>Predicted fraud</span><span>${data.predicted_fraud ? 'YES' : 'no'}</span></div>
+      <div class="row"><span>Action taken</span><span><span class="pill ${data.action}">${data.action.replaceAll('_',' ')}</span></span></div>
+      <div class="row"><span>Requires human</span><span>${data.requires_human ? 'yes' : 'no'}</span></div>
+      <div class="row"><span>Bounded exposure</span><span>₹${data.bounded_exposure_inr.toLocaleString('en-IN')}</span></div>
+      <div class="explain">${data.explanation}</div>
+      <div class="reasons">${data.deterministic_reasons.join('<br>')}</div>
+    `;
+    chatPanel.classList.add('active');
+  } catch (e) {
+    result.innerHTML = `<span class="loading">Request failed: ${e}. Is server.py running?</span>`;
+  }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const question = input.value.trim();
+  const errorEl = document.getElementById('chat-error');
+  errorEl.textContent = '';
+
+  if (!question) {
+    errorEl.textContent = 'Type a question first.';
+    return;
+  }
+  if (!currentWindowId) {
+    errorEl.textContent = 'Score a scenario above before asking a question.';
+    return;
+  }
+
+  const log = document.getElementById('chat-log');
+  const qDiv = document.createElement('div');
+  qDiv.className = 'chat-msg question';
+  qDiv.textContent = question;
+  log.appendChild(qDiv);
+  input.value = '';
+
+  const sendBtn = document.getElementById('chat-send');
+  sendBtn.disabled = true;
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'chat-msg answer';
+  loadingDiv.textContent = 'Thinking...';
+  log.appendChild(loadingDiv);
+  log.scrollTop = log.scrollHeight;
+
+  try {
+    const res = await fetch('/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ window_id: currentWindowId, question: question })
+    });
+    const data = await res.json();
+    loadingDiv.textContent = data.answer || data.error || 'No answer returned.';
+  } catch (e) {
+    loadingDiv.textContent = `Request failed: ${e}`;
+  } finally {
+    sendBtn.disabled = false;
+    log.scrollTop = log.scrollHeight;
+  }
+}
+</script>
+</body>
+</html>
