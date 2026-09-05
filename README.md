@@ -77,7 +77,6 @@ grounded only in that window's own stats.
 - [Project structure](#project-structure)
 - [Production roadmap](#production-roadmap)
 - [Honest limitations](#honest-limitations)
-- [Contributing screenshots](#contributing-screenshots)
 
 ---
 
@@ -351,6 +350,3 @@ Stated explicitly rather than glossed over:
   demos against one (`acc_merchant001`) for simplicity; the batch pipeline
   (`main.py`) is what's validated across all three.
 
-## Contributing screenshots
-
-The dashboard, live-demo, and audit-trail screenshots are already in. 
