@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fraud-Spike Sentinel — Risk Ops Console</title>
+<title>Fraud-Spike Sentinel &mdash; Risk Ops Console</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
@@ -19,49 +19,65 @@
   }
   .mono{font-family:'IBM Plex Mono',monospace;}
   header{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px; border-bottom:1px solid var(--line); padding-bottom:20px;}
-  h1{font-size:22px; margin:0; letter-spacing:.2px;}
-  h1 .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green); margin-right:10px; box-shadow:0 0 8px var(--green);}
+  h1{font-size:24px; margin:0; letter-spacing:.2px;}
+  h1 .dot{display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--green); margin-right:10px; box-shadow:0 0 10px var(--green);}
   .subtitle{color:var(--muted); font-size:13px; margin-top:6px;}
-  .badge{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--dim); border:1px solid var(--line); padding:5px 10px; border-radius:4px;}
+  .badge{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--dim); border:1px solid var(--line); padding:5px 10px; border-radius:4px; white-space:nowrap;}
 
   .grid{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:24px;}
-  .stat{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px 18px;}
+  .stat{background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%); border:1px solid var(--line); border-radius:10px; padding:18px 18px; transition:border-color .15s, transform .4s ease, opacity .4s ease; opacity:0; transform:translateY(10px);}
+  .stat.in{opacity:1; transform:translateY(0);}
+  .stat:hover{border-color:var(--dim);}
   .stat .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px;}
-  .stat .value{font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600;}
+  .stat .value{font-family:'IBM Plex Mono',monospace; font-size:28px; font-weight:700;}
   .stat .value.amber{color:var(--amber)} .stat .value.green{color:var(--green)} .stat .value.red{color:var(--red)} .stat .value.blue{color:var(--blue)}
 
   .row{display:grid; grid-template-columns:1.1fr 1fr; gap:16px; margin-bottom:20px;}
-  .panel{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px;}
-  .panel h2{font-size:13px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:0 0 14px;}
-  .cost-line{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed var(--line); font-size:13px;}
-  .cost-line:last-child{border-bottom:none; padding-top:12px; font-weight:600; color:var(--amber);}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:22px;}
+  .panel h2{font-size:13px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:0 0 16px; display:flex; align-items:center; gap:8px;}
+  .panel h2::before{content:''; width:3px; height:14px; background:var(--amber); border-radius:2px; display:inline-block;}
+  .cost-line{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+  .cost-line:last-child{border-bottom:none; padding-top:14px; font-weight:700; color:var(--amber); font-size:14px;}
   .cost-line span:first-child{color:var(--muted)}
   .cost-line span:last-child{font-family:'IBM Plex Mono',monospace;}
 
   table{width:100%; border-collapse:collapse; font-size:12.5px;}
-  th{text-align:left; color:var(--dim); font-weight:500; text-transform:uppercase; font-size:10.5px; letter-spacing:.5px; padding:8px 10px; border-bottom:1px solid var(--line);}
-  td{padding:10px; border-bottom:1px solid #1a2028; vertical-align:top;}
+  th{text-align:left; color:var(--dim); font-weight:600; text-transform:uppercase; font-size:10.5px; letter-spacing:.5px; padding:10px 10px; border-bottom:2px solid var(--line);}
+  td{padding:11px 10px; border-bottom:1px solid #1a2028; vertical-align:top;}
   tr:hover td{background:#141a23;}
-  .pill{font-family:'IBM Plex Mono',monospace; font-size:10.5px; padding:3px 8px; border-radius:20px; display:inline-block; white-space:nowrap;}
+  .pill{font-family:'IBM Plex Mono',monospace; font-size:10.5px; padding:4px 10px; border-radius:20px; display:inline-block; white-space:nowrap; font-weight:600;}
   .pill.MONITOR{background:#1c2733; color:var(--blue);}
   .pill.STEP_UP_AUTH{background:#2a250f; color:var(--amber);}
   .pill.SOFT_HOLD{background:#2e1a12; color:#FF8A4C;}
   .pill.ESCALATE_HUMAN{background:#2e1418; color:var(--red);}
   .reasons{color:var(--muted); font-size:11.5px; line-height:1.5;}
-  .impact-caveat{color:var(--dim); font-size:11px; margin-bottom:16px;}
-  .impact-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
-  .impact-card{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:16px;}
-  .impact-card .period{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;}
-  .impact-card .net{font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:700; color:var(--green); margin-bottom:10px;}
-  .impact-card .line{display:flex; justify-content:space-between; font-size:11.5px; padding:4px 0; color:var(--muted);}
-  .impact-card .line span:last-child{font-family:'IBM Plex Mono',monospace; color:var(--text);}
   .explain{color:var(--text); font-size:12px; line-height:1.5;}
-  .score{font-family:'IBM Plex Mono',monospace; font-weight:600;}
-  .gt-fraud{color:var(--red); font-weight:600;}
+  .score{font-family:'IBM Plex Mono',monospace; font-weight:700;}
+  .gt-fraud{color:var(--red); font-weight:700;}
   .gt-legit{color:var(--green);}
 
+  .impact-caveat{color:var(--dim); font-size:11px; margin-bottom:16px; line-height:1.5;}
+  .impact-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .impact-card{background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:18px;}
+  .impact-card .period{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px;}
+  .impact-card .net{font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:700; color:var(--green); margin-bottom:12px;}
+  .impact-card .line{display:flex; justify-content:space-between; font-size:11.5px; padding:5px 0; color:var(--muted);}
+  .impact-card .line span:last-child{font-family:'IBM Plex Mono',monospace; color:var(--text);}
+
+  .filter-bar{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .filter-btn{background:var(--panel-2); border:1px solid var(--line); color:var(--muted); padding:7px 14px; border-radius:20px; font-size:11.5px; cursor:pointer; font-family:'IBM Plex Mono',monospace; transition:all .15s;}
+  .filter-btn:hover{border-color:var(--dim); color:var(--text);}
+  .filter-btn.active{background:var(--amber); color:#1a1200; border-color:var(--amber); font-weight:700;}
+  tr.audit-row{cursor:pointer;}
+  tr.audit-row.hidden{display:none;}
+  tr.detail-row{display:none;}
+  tr.detail-row.open{display:table-row;}
+  tr.detail-row td{background:#0d1117; padding:16px 20px; border-bottom:1px solid var(--line);}
+  .detail-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; font-size:12px;}
+  .detail-grid .dlabel{color:var(--dim); text-transform:uppercase; font-size:10px; letter-spacing:.5px; margin-bottom:6px;}
+
   canvas{max-height:260px;}
-  footer{margin-top:30px; color:var(--dim); font-size:11px; text-align:center;}
+  footer{margin-top:34px; color:var(--dim); font-size:11px; text-align:center; line-height:1.6;}
 </style>
 </head>
 <body>
@@ -69,32 +85,40 @@
 <header>
   <div>
     <h1><span class="dot"></span>Fraud-Spike Sentinel</h1>
-    <div class="subtitle mono">Track 02 · AI Risk Manager — held-out test evaluation, 3 merchants, 4 fraud patterns</div>
+    <div class="subtitle mono">Track 02 &middot; AI Risk Manager &mdash; held-out test evaluation, 3 merchants, 4 fraud patterns</div>
   </div>
-  <div class="badge">DEFENSE-ONLY · BOUNDED &amp; GATED · AUDIT-LOGGED</div>
+  <div class="badge">DEFENSE-ONLY &middot; BOUNDED &amp; GATED &middot; AUDIT-LOGGED</div>
 </header>
 
 <div class="grid" id="stat-grid"></div>
 
 <div class="row">
   <div class="panel">
-    <h2>Precision / Recall Curve — Held-out Test Split</h2>
+    <h2>Precision / Recall Curve &mdash; Held-out Test Split</h2>
     <canvas id="prChart"></canvas>
   </div>
   <div class="panel">
-    <h2>Confusion Matrix &amp; Honest Cost Accounting (₹)</h2>
+    <h2>Confusion Matrix &amp; Honest Cost Accounting</h2>
+    <canvas id="confusionChart" style="max-height:140px; margin-bottom:16px;"></canvas>
     <div id="cost-lines"></div>
   </div>
 </div>
 
-<div class="panel" id="impact-panel">
-  <h2>Business Impact — Observed vs. Projected (₹)</h2>
-  <div class="impact-caveat mono">Observed = actual held-out test period. Projected = linear extrapolation, assumption stated explicitly, not hidden.</div>
-  <div class="impact-grid" id="impact-grid"></div>
+<div class="row">
+  <div class="panel">
+    <h2>Bounded Action Distribution</h2>
+    <canvas id="actionChart"></canvas>
+  </div>
+  <div class="panel" id="impact-panel">
+    <h2>Business Impact &mdash; Observed vs. Projected</h2>
+    <div class="impact-caveat mono">Observed = actual held-out test period. Projected = linear extrapolation, assumption stated explicitly, not hidden.</div>
+    <div class="impact-grid" id="impact-grid"></div>
+  </div>
 </div>
 
 <div class="panel">
-  <h2>Audit Trail — Every Flagged Window, Bounded Action, and Explanation</h2>
+  <h2>Audit Trail &mdash; Every Flagged Window, Bounded Action, and Explanation</h2>
+  <div class="filter-bar" id="filter-bar"></div>
   <table>
     <thead>
       <tr><th>Window</th><th>Score</th><th>Ground Truth</th><th>Action</th><th>Reasons</th><th>Explanation</th></tr>
@@ -103,12 +127,13 @@
   </table>
 </div>
 
-<footer>Synthetic data across 3 merchants with distinct baseline traffic, 15-min windows · Ensemble = rolling z-score (transparent) + Isolation Forest (multivariate) + per-customer repeat-order tracking (refund abuse) · Claude narrates decisions already made by a deterministic rules engine</footer>
+<footer>Synthetic data across 3 merchants with distinct baseline traffic, 15-min windows &middot; Ensemble = rolling z-score (transparent) + Isolation Forest (multivariate) + per-customer repeat-order tracking (refund abuse) &middot; Claude / Gemini narrates decisions already made by a deterministic rules engine</footer>
 
 <script>
 const DATA = __DATA_JSON__;
 
 function fmt(n, d=2){ return Number(n).toFixed(d); }
+function inr(n){ return '\u20B9' + Math.round(n).toLocaleString('en-IN'); }
 
 const g = document.getElementById('stat-grid');
 const stats = [
@@ -118,7 +143,28 @@ const stats = [
   {label:'PR-AUC', value: fmt(DATA.metrics.pr_auc,3), cls:'green'},
   {label:'Test Windows', value: DATA.metrics.n_test_windows, cls:''},
 ];
-g.innerHTML = stats.map(s=>`<div class="stat"><div class="label">${s.label}</div><div class="value ${s.cls}">${s.value}</div></div>`).join('');
+g.innerHTML = stats.map(s=>`<div class="stat"><div class="label">${s.label}</div><div class="value ${s.cls}" data-final="${s.value}">0</div></div>`).join('');
+
+// staged fade-in + count-up
+document.querySelectorAll('.stat').forEach((el, i) => {
+  setTimeout(() => {
+    el.classList.add('in');
+    const valEl = el.querySelector('.value');
+    const final = valEl.dataset.final;
+    const isPct = final.includes('%');
+    const numeric = parseFloat(final);
+    if (isNaN(numeric)) { valEl.textContent = final; return; }
+    let frame = 0;
+    const frames = 30;
+    const timer = setInterval(() => {
+      frame++;
+      const progress = frame / frames;
+      const current = numeric * progress;
+      valEl.textContent = isPct ? current.toFixed(1) + '%' : (Number.isInteger(numeric) ? Math.round(current) : current.toFixed(3));
+      if (frame >= frames) { clearInterval(timer); valEl.textContent = final; }
+    }, 16);
+  }, i * 90);
+});
 
 const c = DATA.cost_summary;
 document.getElementById('cost-lines').innerHTML = `
@@ -126,14 +172,51 @@ document.getElementById('cost-lines').innerHTML = `
   <div class="cost-line"><span>False Positives (legit flagged)</span><span style="color:var(--amber)">${c.fp}</span></div>
   <div class="cost-line"><span>False Negatives (fraud missed)</span><span style="color:var(--red)">${c.fn}</span></div>
   <div class="cost-line"><span>True Negatives</span><span>${c.tn}</span></div>
-  <div class="cost-line"><span>False-positive review cost</span><span>₹${c.false_positive_review_cost_inr.toLocaleString('en-IN')}</span></div>
-  <div class="cost-line"><span>False-negative loss cost</span><span>₹${c.false_negative_loss_cost_inr.toLocaleString('en-IN')}</span></div>
-  <div class="cost-line"><span>TOTAL MODEL COST</span><span>₹${c.total_cost_inr.toLocaleString('en-IN')}</span></div>
+  <div class="cost-line"><span>False-positive review cost</span><span>${inr(c.false_positive_review_cost_inr)}</span></div>
+  <div class="cost-line"><span>False-negative loss cost</span><span>${inr(c.false_negative_loss_cost_inr)}</span></div>
+  <div class="cost-line"><span>TOTAL MODEL COST</span><span>${inr(c.total_cost_inr)}</span></div>
 `;
+
+new Chart(document.getElementById('confusionChart'), {
+  type: 'bar',
+  data: {
+    labels: ['True Positive', 'False Positive', 'False Negative', 'True Negative'],
+    datasets: [{
+      data: [c.tp, c.fp, c.fn, c.tn],
+      backgroundColor: ['#33D6A0', '#F2B807', '#E5484D', '#2A3140'],
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    scales: {
+      x: { type: 'logarithmic', ticks:{color:'#5B6576'}, grid:{color:'#1a2028'} },
+      y: { ticks:{color:'#8B96A8', font:{size:11}}, grid:{display:false} }
+    },
+    plugins: { legend: { display:false } }
+  }
+});
+
+const actionCounts = {};
+DATA.flagged_windows.forEach(w => { actionCounts[w.action] = (actionCounts[w.action]||0) + 1; });
+new Chart(document.getElementById('actionChart'), {
+  type: 'doughnut',
+  data: {
+    labels: Object.keys(actionCounts).map(a => a.replaceAll('_',' ')),
+    datasets: [{
+      data: Object.values(actionCounts),
+      backgroundColor: ['#5AA9FF','#F2B807','#FF8A4C','#E5484D'],
+      borderColor: '#0A0D12',
+      borderWidth: 3,
+    }]
+  },
+  options: {
+    plugins: { legend: { position:'right', labels:{color:'#8B96A8', font:{size:11}, padding:14} } }
+  }
+});
 
 if (DATA.business_impact) {
   const bi = DATA.business_impact;
-  const inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
   const periods = [
     { key: 'observed', label: bi.observed.period_label },
     { key: 'monthly', label: bi.monthly.period_label },
@@ -145,7 +228,7 @@ if (DATA.business_impact) {
       <div class="impact-card">
         <div class="period">${p.label}</div>
         <div class="net">${inr(d.net_impact_inr)}</div>
-        <div class="line"><span>Fraud caught</span><span>${d.fraud_caught_count} · ${inr(d.fraud_caught_value_inr)}</span></div>
+        <div class="line"><span>Fraud caught</span><span>${d.fraud_caught_count} &middot; ${inr(d.fraud_caught_value_inr)}</span></div>
         <div class="line"><span>False-positive cost</span><span>-${inr(d.false_positive_cost_inr)}</span></div>
         <div class="line"><span>Fraud missed cost</span><span>-${inr(d.fraud_missed_cost_inr)}</span></div>
       </div>
@@ -176,16 +259,59 @@ new Chart(ctx, {
 });
 
 const body = document.getElementById('audit-body');
-body.innerHTML = DATA.flagged_windows.map(w => `
-  <tr>
-    <td class="mono">${w.window_start}<br><span style="color:var(--dim)">${w.txn_count} txns · ₹${fmt(w.total_amount_inr,0)}</span></td>
-    <td class="score">${fmt(w.risk_score,2)}</td>
-    <td class="${w.ground_truth_is_fraud ? 'gt-fraud' : 'gt-legit'} mono">${w.ground_truth_is_fraud ? 'FRAUD' : 'legit'}</td>
-    <td><span class="pill ${w.action}">${w.action.replaceAll('_',' ')}</span></td>
-    <td class="reasons">${w.deterministic_reasons.join('<br>')}</td>
-    <td class="explain">${w.explanation}</td>
-  </tr>
-`).join('');
+
+function renderAuditRows() {
+  body.innerHTML = DATA.flagged_windows.map((w, i) => `
+    <tr class="audit-row" data-action="${w.action}" data-truth="${w.ground_truth_is_fraud ? 'fraud' : 'legit'}" onclick="toggleDetail(${i})">
+      <td class="mono">${w.window_start}<br><span style="color:var(--dim)">${w.txn_count} txns &middot; ${inr(w.total_amount_inr)}</span></td>
+      <td class="score">${fmt(w.risk_score,2)}</td>
+      <td class="${w.ground_truth_is_fraud ? 'gt-fraud' : 'gt-legit'} mono">${w.ground_truth_is_fraud ? 'FRAUD' : 'legit'}</td>
+      <td><span class="pill ${w.action}">${w.action.replaceAll('_',' ')}</span></td>
+      <td class="reasons">${w.deterministic_reasons.join('<br>')}</td>
+      <td class="explain">${w.explanation}</td>
+    </tr>
+    <tr class="detail-row" id="detail-${i}">
+      <td colspan="6">
+        <div class="detail-grid">
+          <div><div class="dlabel">Merchant</div>${w.merchant_id || 'n/a'}</div>
+          <div><div class="dlabel">Bounded exposure</div>${inr(w.bounded_exposure_inr || 0)}</div>
+          <div><div class="dlabel">Requires human</div>${w.requires_human ? 'Yes' : 'No'}</div>
+          <div><div class="dlabel">Check first</div>${w.check_first || 'n/a'}</div>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function toggleDetail(i) {
+  document.getElementById('detail-'+i).classList.toggle('open');
+}
+
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'fraud', label: 'Fraud only' },
+  { key: 'legit', label: 'Legit only' },
+  { key: 'MONITOR', label: 'Monitor' },
+  { key: 'STEP_UP_AUTH', label: 'Step-up' },
+  { key: 'SOFT_HOLD', label: 'Soft hold' },
+  { key: 'ESCALATE_HUMAN', label: 'Escalate' },
+];
+const filterBar = document.getElementById('filter-bar');
+filterBar.innerHTML = FILTERS.map((f,i) => `<button class="filter-btn ${i===0?'active':''}" data-key="${f.key}">${f.label}</button>`).join('');
+
+filterBar.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.onclick = () => {
+    filterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const key = btn.dataset.key;
+    document.querySelectorAll('.audit-row').forEach(row => {
+      const matches = key === 'all' || row.dataset.action === key || row.dataset.truth === key;
+      row.classList.toggle('hidden', !matches);
+    });
+  };
+});
+
+renderAuditRows();
 </script>
 </body>
 </html>

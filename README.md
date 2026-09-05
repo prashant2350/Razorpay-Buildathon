@@ -27,15 +27,36 @@ single cherry-picked catch.
 <summary><strong>📸 More screenshots (click to expand)</strong></summary>
 <br>
 
-| Live demo — scenario buttons | Live demo — Q&A chat |
+**Live demo — click a scenario, get a scored, explained decision.** The chat
+box at the bottom (highlighted below) lets a reviewer ask a free-form
+follow-up about *why* the window was flagged — answered by the LLM,
+grounded only in that window's own stats.
+
+<p align="center">
+  <img src="screenshots/live_demo_screenshot.png" alt="Live demo with Q&A chat highlighted" width="850">
+</p>
+
+| Card-testing burst → escalate | High-value takeover → escalate |
 |---|---|
-| ![live demo](screenshots/live_demo_screenshot.png) | ![qa chat](screenshots/qa_chat_screenshot.png) |
+| ![card testing](screenshots/live_demo_cardtesting.png) | ![high value takeover](screenshots/live_demo_highvalue.png) |
+
+| Geo-velocity spike → soft hold | Refund abuse ring → soft hold |
+|---|---|
+| ![geo velocity](screenshots/live_demo_geo_velocity.png) | ![refund ring](screenshots/live_demo_refundring.png) |
 
 | Webhook verification test | Business impact panel |
 |---|---|
-| ![webhook test](screenshots/webhook_test_screenshot.png) | ![business impact](screenshots/business_impact_screenshot.png) |
+| ![webhook test](screenshots/webhook_test_screenshot.png) | ![business impact](screenshots/dashboard_business_impact.png) |
 
-*(Add your own screenshots to `screenshots/` with these filenames — see [Contributing screenshots](#contributing-screenshots) below. Browser-rendered screenshots show the live Chart.js precision/recall curve and fonts that a headless static render can't capture.)*
+*(The webhook test screenshot is still a placeholder — see [Contributing screenshots](#contributing-screenshots) to fill it in. Browser-rendered screenshots show the live Chart.js precision/recall curve and fonts that a headless static render can't capture.)*
+
+| Precision/recall curve & confusion matrix | Audit trail — filterable by action |
+|---|---|
+| ![dashboard charts](screenshots/dashboard_charts.png) | ![audit trail all](screenshots/dashboard_audit_all.png) |
+
+| Audit trail — step-up auth | Audit trail — escalate human |
+|---|---|
+| ![audit stepup](screenshots/dashboard_audit_stepup.png) | ![audit escalate](screenshots/dashboard_audit_escalate.png) |
 
 </details>
 
@@ -332,17 +353,14 @@ Stated explicitly rather than glossed over:
 
 ## Contributing screenshots
 
-The dashboard screenshot at the top is pre-rendered. To add the others,
-run the app locally and capture these four (browser DevTools → full-page
-screenshot, or any screenshot tool), saving into `screenshots/` with these
-exact filenames so the README picks them up automatically:
+The dashboard, live-demo, and audit-trail screenshots are already in. One is
+still missing — run the app locally and capture it (browser DevTools →
+full-page screenshot, or any screenshot tool), saving into `screenshots/`
+with this exact filename so the README picks it up automatically:
 
 | Filename | What to capture |
 |---|---|
-| `live_demo_screenshot.png` | `http://localhost:8000/demo` after clicking one scenario button — shows the risk score, action, and explanation |
-| `qa_chat_screenshot.png` | The chat panel after asking a follow-up question, with the LLM's answer visible |
 | `webhook_test_screenshot.png` | Terminal output of `python3 webhooks/test_webhook.py` — showing all three [PASS] results |
-| `business_impact_screenshot.png` | The dashboard's "Business Impact" panel (scroll down from the top stats) |
 
 No code or README changes needed after adding the files — the collapsible
 gallery above already references these paths.
