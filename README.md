@@ -353,14 +353,4 @@ Stated explicitly rather than glossed over:
 
 ## Contributing screenshots
 
-The dashboard, live-demo, and audit-trail screenshots are already in. One is
-still missing — run the app locally and capture it (browser DevTools →
-full-page screenshot, or any screenshot tool), saving into `screenshots/`
-with this exact filename so the README picks it up automatically:
-
-| Filename | What to capture |
-|---|---|
-| `webhook_test_screenshot.png` | Terminal output of `python3 webhooks/test_webhook.py` — showing all three [PASS] results |
-
-No code or README changes needed after adding the files — the collapsible
-gallery above already references these paths.
+The dashboard, live-demo, and audit-trail screenshots are already in. 
